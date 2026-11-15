@@ -32,6 +32,7 @@ migrate_working_dir/
 # Local workspace demo storefronts, admin portal, and capstone manuscripts
 # (excluded so the standalone plugin repository stays lightweight and free of demo keys)
 admin/
+embedded_demo/
 example/
 example2/
 DEMO_SCENARIO.md
