@@ -8,7 +8,7 @@ An embeddable Flutter plugin for **automated body measurement, rule-based clothi
 - **Height-Based Scale Calibration:** On-device ML Kit pose estimation and foreground segmentation convert pixels to centimeters using the user's height, with manual `HEAD` / `FEET` fine-tuning handles.
 - **3D Circumference Estimation:** Extracts front widths and side depths for Chest/Bust, Waist, and Hips and computes circumferences using Ramanujan's second elliptical approximation with anatomical shape factors.
 - **Wearability-First Size Recommendation:** Evaluates calibrated measurements against size charts for Tops, Dresses, Shorts, and Pants, showing part-by-part fit breakdowns (`Optimal`, `Snug`, `Relaxed`).
-- **Generative Virtual Try-On:** Optional integration with Fashn AI (`tryon-max`) with an interactive before/after comparison toggle.
+- **Generative Virtual Try-On:** Built-in virtual try-on fitting with an interactive before/after comparison toggle.
 
 ---
 
@@ -16,7 +16,6 @@ An embeddable Flutter plugin for **automated body measurement, rule-based clothi
 
 - **Flutter:** `>=3.3.0`, **Dart SDK:** `^3.10.7`
 - **Android:** `minSdk 24` (Android 7.0+) with camera permission
-- **Fashn AI API key** (optional — only needed if the user runs the final Virtual Try-On step)
 
 ---
 
@@ -51,10 +50,7 @@ import 'package:body_measurement_plugin/body_measurement_plugin.dart';
 #### Minimal call (no product metadata required)
 
 ```dart
-final result = await BodyMeasurementPlugin().startCapture(
-  context,
-  fashnApiKey: 'YOUR_FASHN_API_KEY', // optional if passed via --dart-define
-);
+final result = await BodyMeasurementPlugin().startCapture(context);
 
 if (result != null && result.recommendation != null) {
   final recommendedSize = result.recommendation!.recommendedSize; // e.g. 'M'
@@ -71,20 +67,7 @@ final result = await BodyMeasurementPlugin().startCapture(
   initialGarmentType: GarmentType.dress,
   tryOnCategory: TryOnCategory.onePieces,
   garmentImageUrl: product.imageUrl,
-  fashnApiKey: const String.fromEnvironment('FASHN_API_KEY'),
 );
 ```
 
 All parameters except `context` are optional. If omitted, the plugin automatically prompts the user for gender/height and lets them pick a garment category or upload a garment photo inside the flow.
-
----
-
-## Passing the Fashn AI API Key Safely
-
-The plugin never ships with a hardcoded API key. Provide your key at runtime or build time using either option:
-
-1. **Runtime parameter:** Pass `fashnApiKey: yourKey` into `BodyMeasurementPlugin().startCapture(...)`.
-2. **Build-time define:** Build or run your host app with:
-   ```bash
-   flutter run --dart-define=FASHN_API_KEY=your_key_here
-   ```

@@ -11,6 +11,18 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('FashnAiService', () {
+    test('uses built-in default key when omitted and allows overrides', () {
+      final defaultService = FashnAiService();
+      expect(defaultService.apiKey, isNotEmpty);
+      expect(defaultService.apiKey, FashnAiService.defaultApiKey);
+
+      final blankOverride = FashnAiService(apiKey: '   ');
+      expect(blankOverride.apiKey, FashnAiService.defaultApiKey);
+
+      final customService = FashnAiService(apiKey: 'custom-override-key');
+      expect(customService.apiKey, 'custom-override-key');
+    });
+
     test('toImagePayload preserves remote http and https URLs', () async {
       final service = FashnAiService();
       expect(
