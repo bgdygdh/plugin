@@ -1,0 +1,1 @@
+enum CaptureStep { front, side }
