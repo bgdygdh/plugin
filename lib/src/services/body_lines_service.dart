@@ -1,11 +1,8 @@
-import 'dart:io';
-import 'dart:ui' as ui;
-
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../models/body_lines.dart';
+import 'photo_normalizer.dart';
 import 'torso_line_analyzer.dart';
 
 /// Finds the chest, waist and hip lines on the FRONT photo (widths) and the
@@ -295,59 +292,20 @@ class BodyLinesService {
     return mask;
   }
 
-  /// Decodes [path] with Flutter's decoder (which applies the photo's EXIF
-  /// rotation, exactly like `Image.file`) and writes an upright PNG copy.
-  Future<_NormalizedPhoto> _normalize(String path) async {
-    ui.Codec? codec;
-    ui.Image? image;
+  Future<NormalizedPhoto> _normalize(String path) async {
     try {
-      final bytes = await File(path).readAsBytes();
-      codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      image = frame.image;
-
-      final width = image.width;
-      final height = image.height;
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (data == null || width <= 0 || height <= 0) {
-        throw const BodyLinesException(
-          'A photo could not be read. Please retake the photos.',
-        );
-      }
-
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}${Platform.pathSeparator}'
-        'bm_lines_${DateTime.now().microsecondsSinceEpoch}.png',
+      return await PhotoNormalizer.normalize(
+        path,
+        prefix: 'bm_lines',
       );
-      await file.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
-      return _NormalizedPhoto(file: file, width: width, height: height);
     } on BodyLinesException {
       rethrow;
-    } catch (_) {
-      throw const BodyLinesException(
-        'A photo could not be read. Please retake the photos.',
+    } catch (e) {
+      throw BodyLinesException(
+        'A photo could not be read. Please retake the photos. ($e)',
       );
-    } finally {
-      image?.dispose();
-      codec?.dispose();
     }
   }
-}
-
-class _NormalizedPhoto {
-  final File file;
-  final int width;
-  final int height;
-
-  const _NormalizedPhoto({
-    required this.file,
-    required this.width,
-    required this.height,
-  });
 }
 
 class _FrontOutcome {

@@ -11,6 +11,7 @@ import '../models/scale_calibration_exception.dart';
 import '../models/scale_calibration_result.dart';
 import 'body_anchor_builder.dart';
 import 'person_mask_analyzer.dart';
+import 'photo_normalizer.dart';
 import 'scale_calculator.dart';
 
 /// Turns the two captured photos + the user's real height into the ONE final
@@ -307,81 +308,24 @@ class ScaleCalibrationService {
   BodyAnchors _buildAnchors(Pose pose, double scaleX, double scaleY) =>
       BodyAnchorBuilder.build(pose, scaleX, scaleY);
 
-  /// Decodes [path] with Flutter's decoder (which applies the photo's EXIF
-  /// rotation, exactly like `Image.file`) and writes an upright PNG copy.
-  Future<_NormalizedPhoto> _normalize(
+  Future<NormalizedPhoto> _normalize(
     String path, {
     bool extractRawRgba = false,
   }) async {
-    ui.Codec? codec;
-    ui.Image? image;
     try {
-      final bytes = await File(path).readAsBytes();
-      codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      image = frame.image;
-
-      final width = image.width;
-      final height = image.height;
-      final data = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (data == null || width <= 0 || height <= 0) {
-        throw const ScaleCalibrationException(
-          'The photo could not be read. Please retake it.',
-        );
-      }
-
-      Uint8List? rawRgba;
-      if (extractRawRgba) {
-        final rawData =
-            await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-        if (rawData != null) {
-          rawRgba = rawData.buffer.asUint8List(
-            rawData.offsetInBytes,
-            rawData.lengthInBytes,
-          );
-        }
-      }
-
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}${Platform.pathSeparator}'
-        'bm_calibration_${DateTime.now().microsecondsSinceEpoch}.png',
-      );
-      await file.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
-      return _NormalizedPhoto(
-        file: file,
-        width: width,
-        height: height,
-        rawRgba: rawRgba,
+      return await PhotoNormalizer.normalize(
+        path,
+        prefix: 'bm_calibration',
+        extractRawRgba: extractRawRgba,
       );
     } on ScaleCalibrationException {
       rethrow;
-    } catch (_) {
-      throw const ScaleCalibrationException(
-        'The photo could not be read. Please retake it.',
+    } catch (e) {
+      throw ScaleCalibrationException(
+        'The photo could not be read. Please retake it. ($e)',
       );
-    } finally {
-      image?.dispose();
-      codec?.dispose();
     }
   }
-}
-
-class _NormalizedPhoto {
-  final File file;
-  final int width;
-  final int height;
-  final Uint8List? rawRgba;
-
-  const _NormalizedPhoto({
-    required this.file,
-    required this.width,
-    required this.height,
-    this.rawRgba,
-  });
 }
 
 class _Measurement {
